@@ -1,29 +1,40 @@
 <?php
 session_start();
 
-// Check if the user is already authenticated
-if (isset($_SESSION['authenticated']) && $_SESSION['authenticated']) {
-    header("Location: index.php");
-    exit;
+// Function to generate CSRF token
+function generateCSRFToken() {
+    if (function_exists('random_bytes')) {
+        return bin2hex(random_bytes(32));
+    } elseif (function_exists('openssl_random_pseudo_bytes')) {
+        return bin2hex(openssl_random_pseudo_bytes(32));
+    } else {
+        return uniqid();
+    }
 }
 
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Simulate authentication (replace this with actual authentication logic)
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF token validation failed.");
+    }
+
+    // Simulate authentication (accept any username and password)
     $username = $_POST["username"];
     $password = $_POST["password"];
 
-    // Validate username and password (replace this with actual validation logic)
-    if ($username === "admin" && $password === "password") {
-        // Authentication successful
-        $_SESSION['authenticated'] = true;
-        header("Location: index.php");
-        exit;
-    } else {
-        // Authentication failed
-        $error = "Invalid username or password";
-    }
+    // Set authenticated status and user details in session
+    $_SESSION['authenticated'] = true;
+    $_SESSION['username'] = $username;
+    $_SESSION['password'] = $password;
+
+    // Redirect to index page
+    header("Location: index.php");
+    exit;
 }
+
+// Generate CSRF token and store it in session
+$_SESSION['csrf_token'] = generateCSRFToken();
 ?>
 
 <!DOCTYPE html>
@@ -45,12 +56,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           Login
         </div>
         <div class="card-body">
-          <?php if (isset($error)): ?>
-            <div class="alert alert-danger" role="alert">
-              <?php echo $error; ?>
-            </div>
-          <?php endif; ?>
           <form method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
               <input type="text" class="form-control" id="username" name="username">

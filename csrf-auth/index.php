@@ -1,15 +1,26 @@
 <?php
 session_start();
 
+// Function to generate CSRF token
+function generateCSRFToken() {
+    if (function_exists('random_bytes')) {
+        return bin2hex(random_bytes(32));
+    } elseif (function_exists('openssl_random_pseudo_bytes')) {
+        return bin2hex(openssl_random_pseudo_bytes(32));
+    } else {
+        return uniqid();
+    }
+}
+
 // Check if the user is authenticated
 if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
     header("Location: login.php");
     exit;
 }
 
-// Generate CSRF token and store it in session
+// Generate CSRF token and store it in session if not already present
 if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf_token'] = generateCSRFToken();
 }
 ?>
 
